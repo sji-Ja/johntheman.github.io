@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚜</text></svg>">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JohnTheMan</title>
+<style>
+
+/* This project is non-commercial. I couldn’t find any clear licensing info for the song.
+If you are the copyright holder and want it removed, contact me and I will take it down immediately.
+ */
+
+
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+html, body {
+  margin:0; padding:0; width:100%; height:100%;
+  background:#000; font-family:'Poppins',sans-serif;
+  overflow:hidden; color:#fff;
+  display:flex; justify-content:center; align-items:center;
+}
+
+#bgCanvas {
+  position:fixed; top:0; left:0;
+  width:100%; height:100%; z-index:0;
+}
+
+/* MAIN GRID */
+#plateau {
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap:40px;
+
+  width:900px;
+  height:620px;
+
+  transform-style:preserve-3d;
+  transition: transform 0.2s ease;
+  perspective:1400px;
+
+  justify-items:center;
+  align-items:center;
+  position:relative; z-index:1;
+}
+
+.section {
+  width:260px;
+  background: rgba(20,20,20,0.35);
+  border-radius:25px;
+  border:1px solid rgba(255,255,255,0.2);
+  backdrop-filter: blur(14px);
+  box-shadow:0 0 30px rgba(255,0,50,0.25);
+  padding:25px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.section:hover {
+  transform: scale(1.05);
+  box-shadow:0 0 60px rgba(255,0,50,0.55);
+}
+
+/* PROFILE */
+#profile h1 {
+  font-size:54px;
+  background:linear-gradient(45deg,#ff0000,#ff4c4c);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  text-shadow:0 0 20px rgba(255,0,50,0.5);
+  margin:5px 0;
+}
+
+.eyes { display:flex; justify-content:center; gap:12px; margin:5px 0; }
+.eye {
+  width:18px; height:18px;
+  background:#fff; border-radius:50%;
+  position:relative; display:flex; justify-content:center; align-items:center;
+  overflow:hidden;
+}
+.pupil {
+  width:8px; height:8px;
+  background:#000; border-radius:50%;
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  box-shadow:0 0 8px rgba(255,0,50,0.7);
+}
+
+#profile h3 { font-size:16px; color:#aaa; margin:3px 0; text-align:center; }
+#description p, #contact p, #interests p { font-size:14px; color:#ccc; text-align:center; }
+
+/* AUDIO */
+#audioWrapper {
+  width:260px; background:rgba(255,0,50,0.15);
+  border-radius:15px;
+  display:flex; flex-direction:column; gap:12px;
+  padding-bottom:15px;
+  box-shadow:0 0 25px rgba(255,0,50,0.3);
+}
+
+#progressContainer, #volumeContainer {
+  width:90%; height:12px;
+  background:rgba(255,0,50,0.25);
+  border-radius:8px; cursor:pointer;
+}
+#progress, #volumeLevel {
+  width:0%; height:100%;
+  background:#ff0000; border-radius:8px;
+  transition:width 0.1s linear;
+}
+
+#audioControls { display:flex; justify-content:space-between; width:90%; }
+#audioControls button {
+  background:#ff0000; border:none;
+  padding:10px 18px; border-radius:14px;
+  color:#fff; font-weight:600; cursor:pointer;
+}
+
+#volumeLabel { color:#fff; font-weight:600; font-size:14px; }
+</style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div id="plateau">
+  <div class="section" id="profile">
+    <h1>⚜</h1>
+    <div class="eyes">
+      <div class="eye"><div class="pupil"></div></div>
+      <div class="eye"><div class="pupil"></div></div>
+    </div>
+    <h3>Polish Creator</h3>
+  </div>
+
+  <div class="section" id="description">
+    <p>Polish dragon ball fan. Your average John</p>
+  </div>
+
+  <div class="section" id="contact">
+    <p>YouTube <a href="https://www.youtube.com/@matrooise4352" style="color:#ff4c4c;text-decoration:none;">@matrooise4352</a></p>
+  </div>
+
+  <div class="section" id="interests">
+    <p>Programming & Coding | Jets & Rally Cars | Dragon Ball Universe</p>
+  </div>
+
+  <div class="section" id="audioWrapper">
+    <div id="volumeLabel">Volume 🔊</div>
+    <div id="volumeContainer"><div id="volumeLevel"></div></div>
+    <div id="progressContainer"><div id="progress"></div></div>
+    <div id="audioControls">
+      <button id="playPause">Play</button>
+      <button id="stop">Stop</button>
+    </div>
+    <audio id="audioPlayer" src="https://r2.guns.lol/cca3170f-7c29-4ad5-9dab-e68370c2df4b.mp3"></audio>
+  </div>
+</div>
+
+<script>
+/* CANVAS */
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const sparkles = [];
+for(let i=0;i<180;i++){
+  sparkles.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    r: Math.random()*2+0.6,
+    alpha: Math.random()*0.8+0.2,
+    dx: (Math.random()-0.5)/2,
+    dy: (Math.random()-0.5)/2
+  });
+}
+
+const clicks = [];
+canvas.addEventListener("click", e => {
+  clicks.push({ x:e.clientX, y:e.clientY, r:0, a:1, s:1 });
+});
+
+function animate(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "rgba(0,0,0,0.25)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  sparkles.forEach(s=>{
+    s.x+=s.dx; s.y+=s.dy;
+    if(s.x<0)s.x=canvas.width;
+    if(s.x>canvas.width)s.x=0;
+    if(s.y<0)s.y=canvas.height;
+    if(s.y>canvas.height)s.y=0;
+
+    ctx.beginPath();
+    ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(255,255,255,${s.alpha})`;
+    ctx.fill();
+  });
+
+  for(let i=clicks.length-1;i>=0;i--){
+    let c=clicks[i];
+    c.r+=10;
+    c.a-=0.015;
+    c.s*=0.97;
+
+    let g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.r);
+    g.addColorStop(0,`rgba(255,40,70,${0.45*c.a})`);
+    g.addColorStop(0.3,`rgba(255,0,50,${0.25*c.a})`);
+    g.addColorStop(0.6,`rgba(255,0,50,${0.1*c.a})`);
+    g.addColorStop(1,`rgba(255,0,50,0)`);
+
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    sparkles.forEach(s=>{
+      const dx=s.x-c.x, dy=s.y-c.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<c.r){
+        const boost=(1-dist/c.r)*0.4*c.s;
+        s.alpha=Math.min(1,s.alpha+boost);
+      }
+    });
+
+    if(c.a<=0) clicks.splice(i,1);
+  }
+
+  requestAnimationFrame(animate);
+}
+animate();
+
+/* TILT */
+const plate = document.getElementById("plateau");
+let tx=0, ty=0;
+document.addEventListener("mousemove", e=>{
+  const cx=innerWidth/2, cy=innerHeight/2;
+  const tox=(e.clientX-cx)/12;
+  const toy=(e.clientY-cy)/12;
+  tx+=(tox-tx)*0.05;
+  ty+=(toy-ty)*0.05;
+  plate.style.transform=`rotateX(${-ty}deg) rotateY(${tx}deg)`;
+});
+
+/* EYES */
+document.addEventListener("mousemove", e=>{
+  document.querySelectorAll(".eye").forEach(eye=>{
+    const rect=eye.getBoundingClientRect();
+    const dx=e.clientX-(rect.left+rect.width/2);
+    const dy=e.clientY-(rect.top+rect.height/2);
+    const max=8;
+    eye.querySelector(".pupil").style.transform=
+      `translate(${Math.max(Math.min(dx/8,max),-max)}px,
+                 ${Math.max(Math.min(dy/8,max),-max)}px)`;
+  });
+});
+
+/* AUDIO */
+const audio=document.getElementById("audioPlayer");
+const playPause=document.getElementById("playPause");
+const stopBtn=document.getElementById("stop");
+const progress=document.getElementById("progress");
+const volumeLevel=document.getElementById("volumeLevel");
+const volumeContainer=document.getElementById("volumeContainer");
+
+playPause.onclick=()=>{
+  if(audio.paused){audio.play(); playPause.textContent="Pause";}
+  else{audio.pause(); playPause.textContent="Play";}
+};
+stopBtn.onclick=()=>{
+  audio.pause(); audio.currentTime=0; playPause.textContent="Play";
+};
+
+audio.ontimeupdate=()=>{
+  progress.style.width=`${(audio.currentTime/audio.duration)*100}%`;
+};
+
+document.getElementById("progressContainer").onclick=e=>{
+  const r=e.target.getBoundingClientRect();
+  audio.currentTime=((e.clientX-r.left)/r.width)*audio.duration;
+};
+
+function setVol(e){
+  const r=volumeContainer.getBoundingClientRect();
+  let pct=(e.clientX-r.left)/r.width;
+  pct=Math.min(Math.max(pct,0),1);
+  audio.volume=pct;
+  volumeLevel.style.width=`${pct*100}%`;
+}
+
+volumeContainer.onmousedown=e=>{
+  setVol(e);
+  const move=ev=>setVol(ev);
+  const up=()=>{removeEventListener("mousemove",move); removeEventListener("mouseup",up);}
+  addEventListener("mousemove",move);
+  addEventListener("mouseup",up);
+};
+</script>
+
+
+
+</body>
+</html>
